@@ -36,7 +36,7 @@ export default function Header() {
           )}
           {!user ? (
             <div className="flex gap-2">
-              <Link href="/(auth)/login">
+              <Link href="/login">
                 <Button variant="ghost">Login</Button>
               </Link>
               <Link href="/signup">
