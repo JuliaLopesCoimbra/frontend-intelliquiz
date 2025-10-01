@@ -16,13 +16,13 @@ export default function Header() {
             href="/"
             className="text-sm text-neutral-300 hover:text-amber-300"
           >
-            Explorar
+            Quizzes
           </Link>
           <Link
             href="/leaderboard/global"
             className="text-sm text-neutral-300 hover:text-amber-300"
           >
-            Leaderboard
+            Ranking
           </Link>
           {user?.role === "client" && (
             <Link href="/dashboard">

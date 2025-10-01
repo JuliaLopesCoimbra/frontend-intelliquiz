@@ -20,16 +20,21 @@ export default function Login() {
 
   const canSubmit = email.trim().length > 0 && senha.trim().length > 0;
 
-  const submit = () => {
-    if (!canSubmit) return;
+const submit = () => {
+  if (!canSubmit) return;
 
-    // Você pode validar senha no servidor. Aqui seguimos seu fluxo atual:
-    const nameFromEmail = email.split("@")[0] || "Usuário";
-    login({ id: crypto.randomUUID(), name: nameFromEmail, role });
-    router.push("/");
-  };
+  const nameFromEmail = email.split("@")[0] || "Usuário";
+  login({ id: crypto.randomUUID(), name: nameFromEmail, role });
 
-  const goToRegister = () => router.push("/register");
+  if (role === "user") {
+    router.push("/user/dashboard");
+  } else if (role === "client") {
+    router.push("/client/dashboard");
+  }
+};
+
+
+  const goToRegister = () => router.push("/signup");
 
   return (
     <>
