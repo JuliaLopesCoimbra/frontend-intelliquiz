@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import QuizCard from "@/components/QuizCard";
 import { api } from "@/lib/mockApi";
 
@@ -15,6 +16,7 @@ export default async function Home() {
           ))}
         </div>
       </main>
+      <Footer />
     </>
   );
 }

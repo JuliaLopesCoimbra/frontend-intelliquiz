@@ -6,9 +6,9 @@ import { Quiz } from "@/lib/types";
 export default function QuizCard({ quiz }: { quiz: Quiz }) {
   return (
     <Link href={`/quiz/${quiz.slug}`}>
-      <Card className="group h-full border-neutral-800 hover:border-amber-400/40">
+      <Card className="group bg-black h-full border-neutral-800 hover:border-amber-400/40">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between text-base">
+          <CardTitle className="text-white flex items-center justify-between text-base">
             <span>{quiz.title}</span>
             <Badge
               variant="outline"
