@@ -26,7 +26,7 @@ export default function QuizCard({ quiz }: { quiz: Quiz }) {
               backgroundSize: "cover",
             }}
           />
-          <p className="text-sm text-neutral-400">{quiz.plays} jogadas</p>
+          <p className="text-sm text-amber-200">{quiz.plays} jogadas</p>
         </CardContent>
       </Card>
     </Link>
