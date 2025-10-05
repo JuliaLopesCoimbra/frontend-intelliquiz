@@ -24,7 +24,7 @@ Integração com o Projeto Final
 
 O código-fonte que desenvolvi se integra ao projeto final da seguinte forma:
 
-As rotas do front-end consomem as APIs criadas no back-end (FastAPI), garantindo que o usuário possa cadastrar, autenticar-se e interagir com quizzes.
+As rotas do front-end consomem as APIs criadas no back-end, que ainda está em construção e garantindo que o usuário possa cadastrar, autenticar-se e interagir com quizzes.
 
 A dashboard será conectada ao banco de dados via API, exibindo em tempo real os quizzes criados e os resultados obtidos.
 
