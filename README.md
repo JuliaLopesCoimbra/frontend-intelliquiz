@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+IntelliQuiz 🎓✨
+Objetivo do Projeto
 
-## Getting Started
+O IntelliQuiz é uma plataforma interativa de quizzes que permite aos usuários criar, responder e gerenciar quizzes personalizados. A proposta é oferecer uma experiência gamificada e dinâmica para aprendizado, treinamento e diversão, tanto em ambientes acadêmicos quanto corporativos.
 
-First, run the development server:
+Tecnologias Utilizadas
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Front-end: Next.js (React, TailwindCSS, Shadcn/UI)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Back-end: FastAPI (Python)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Banco de Dados: PostgreSQL (via Supabase)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Criptografia: JWT para autenticação e bcrypt para hash de senhas
 
-## Learn More
+Containerização: Docker
 
-To learn more about Next.js, take a look at the following resources:
+Inteligência Artificial: Integrações futuras para geração automática de perguntas e análise de desempenho dos quizzes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Arquitetura da Aplicação: Arquitetura full-stack modular, separando claramente camadas de front-end, back-end e banco de dados.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Estrutura do Código-Fonte e Minha Contribuição
+Parte que desenvolvi (Front-end)
 
-## Deploy on Vercel
+Neste fork, fui responsável pelo desenvolvimento da interface principal em Next.js, com foco nas rotas e funcionalidades essenciais para interação do usuário:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+/signin → Página de login com autenticação integrada ao backend.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+/signup → Página de cadastro com validação de dados.
+
+/dashboard → Painel do usuário para visualização de quizzes criados e respondidos.
+
+/create → Página para criação de novos quizzes, com campos dinâmicos para perguntas e respostas.
+
+Integração com o Projeto Final
+
+O código-fonte que desenvolvi se integra ao projeto final da seguinte forma:
+
+As rotas do front-end consomem as APIs criadas no back-end (FastAPI), garantindo que o usuário possa cadastrar, autenticar-se e interagir com quizzes.
+
+A dashboard será conectada ao banco de dados via API, exibindo em tempo real os quizzes criados e os resultados obtidos.
+
+A parte de criação de quizzes (/create) fornece os formulários estruturados que, ao serem enviados, alimentam a base de dados central do projeto, compondo o módulo de conteúdo dinâmico.
+
+Links Importantes
+
+Repositório Central da Organização: IntelliQuiz Central
+
+Meu Fork: Julia Lopes Coimbra - IntelliQuiz Frontend
