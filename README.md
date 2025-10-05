@@ -7,18 +7,6 @@ Tecnologias Utilizadas
 
 Front-end: Next.js (React, TailwindCSS, Shadcn/UI)
 
-Back-end: FastAPI (Python)
-
-Banco de Dados: PostgreSQL (via Supabase)
-
-Criptografia: JWT para autenticação e bcrypt para hash de senhas
-
-Containerização: Docker
-
-Inteligência Artificial: Integrações futuras para geração automática de perguntas e análise de desempenho dos quizzes
-
-Arquitetura da Aplicação: Arquitetura full-stack modular, separando claramente camadas de front-end, back-end e banco de dados.
-
 Estrutura do Código-Fonte e Minha Contribuição
 Parte que desenvolvi (Front-end)
 
