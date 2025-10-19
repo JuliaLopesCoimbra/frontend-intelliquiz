@@ -1,4 +1,4 @@
-export type Role = "user" | "client";
+export type Role = "user";
 export type Question = {
   id: string;
   text: string;

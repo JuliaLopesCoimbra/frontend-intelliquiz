@@ -7,30 +7,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Header from "@/components/Header";
-import clsx from "clsx";
-
-type Role = "user" | "client";
-
+import { Role } from "@/lib/types";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [role, setRole] = useState<Role>("user");
   const { login } = useApp();
   const router = useRouter();
 
   const canSubmit = email.trim().length > 0 && senha.trim().length > 0;
 
-const submit = () => {
+  const submit = () => {
   if (!canSubmit) return;
 
   const nameFromEmail = email.split("@")[0] || "Usuário";
-  login({ id: crypto.randomUUID(), name: nameFromEmail, role });
 
-  if (role === "user") {
-    router.push("/user/dashboard");
-  } else if (role === "client") {
-    router.push("/client/dashboard");
-  }
+  const userRole: Role = "user"; 
+
+  // Criação do objeto User com a propriedade 'role'
+  login({ id: crypto.randomUUID(), name: nameFromEmail, role: userRole });
+
+  // Redireciona diretamente para o dashboard
+  router.push("/client/dashboard");
 };
 
 
@@ -53,37 +50,6 @@ const submit = () => {
             </CardHeader>
 
             <CardContent className="space-y-6">
-              {/* Toggle Bonito de Perfil */}
-              <div className="space-y-2">
-                <Label className="text-base">Perfil</Label>
-                <div className="rounded-2xl border border-neutral-800 bg-neutral-900/80 p-1">
-                  <div className="grid grid-cols-2 gap-1">
-                    {(["user", "client"] as Role[]).map((opt) => {
-                      const active = role === opt;
-                      return (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => setRole(opt)}
-                          className={clsx(
-                            "h-11 rounded-xl text-base font-medium transition-all",
-                            active
-                              ? "bg-amber-400 text-black shadow"
-                              : "bg-transparent text-neutral-300 hover:bg-neutral-800"
-                          )}
-                          aria-pressed={active}
-                        >
-                          {opt === "user" ? "Usuário" : "Cliente"}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <p className="text-xs text-neutral-500">
-                  Troque o tipo de sessão conforme necessário.
-                </p>
-              </div>
-
               {/* Email */}
               <div className="space-y-2">
                 <Label className="text-base">E-mail</Label>
