@@ -18,6 +18,9 @@ export type Quiz = {
   plays: number;
   creatorId: string;
   createdAt: string;
+   author?: string;  
+  likes: number;
+  play: string;
 };
 export type LeaderboardEntry = {
   user: string;

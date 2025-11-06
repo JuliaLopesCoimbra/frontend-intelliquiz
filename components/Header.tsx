@@ -1,30 +1,38 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { useApp } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 
 export default function Header() {
   const { user, logout } = useApp();
+
+  // ✅ Corrige o erro de tipo: garante comparação segura
+  const isClient = !!user && String(user.role) === "client";
+
   return (
     <header className="sticky top-0 z-50 border-b border-neutral-800 bg-black/60 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/" className="text-xl font-semibold text-amber-300">
-          QuizLab
+        
+        {/* LOGO + TEXTO */}
+        <Link href="/" className="flex items-center gap-2">
+          <Image
+            src="/logo.png"     // <-- coloque o caminho da sua logo aqui
+            alt="Logo"
+            width={50}
+            height={50}
+            className="rounded-md" // tire se não quiser bordas arredondadas
+            priority
+          />
+          <span className="text-xl font-semibold text-amber-300">
+            IntelliQuiz
+          </span>
         </Link>
+
+        {/* NAV */}
         <nav className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="text-sm text-neutral-300 hover:text-amber-300"
-          >
-            Quizzes
-          </Link>
-          <Link
-            href="/leaderboard/global"
-            className="text-sm text-neutral-300 hover:text-amber-300"
-          >
-            Ranking
-          </Link>
-          {user?.role === "client" && (
+         
+          {isClient && (
             <Link href="/dashboard">
               <Button
                 variant="outline"
@@ -34,6 +42,7 @@ export default function Header() {
               </Button>
             </Link>
           )}
+
           {!user ? (
             <div className="flex gap-2">
               <Link href="/login">

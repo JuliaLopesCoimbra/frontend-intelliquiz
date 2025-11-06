@@ -1,6 +1,13 @@
 import { create } from "zustand";
 import { Quiz, User, LeaderboardEntry } from "./types";
+export type Role = "user" | "client" | "admin"; 
 
+export interface AppUser {
+  id: string;
+  name: string;
+  role: Role; 
+  
+}
 type State = {
   user: User | null;
   quizzes: Quiz[];

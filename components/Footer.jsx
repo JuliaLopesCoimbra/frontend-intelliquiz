@@ -6,7 +6,7 @@ export default function Footer() {
     <footer className="border-t border-neutral-800 bg-black/60 backdrop-blur mt-12">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-6 sm:flex-row">
         <p className="text-sm text-neutral-400">
-          © {new Date().getFullYear()} QuizLab. Todos os direitos reservados.
+          © {new Date().getFullYear()} IntelliQuiz. Todos os direitos reservados.
         </p>
         <nav className="flex gap-4">
           <Link
