@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { http } from "@/lib/http";
+import { httpRetry as http } from "@/lib/http-retry";
+
 
 export type HomepageQuiz = {
   id: string;
@@ -57,8 +58,7 @@ export function useHomepage(enabled: boolean) {
 
         const client: any = http as any;
 
-        // Se for axios-like com .get, usa .get
-        // Senão, assume que é uma função estilo fetch(url, options)
+    
         const res =
           typeof client === "function" && !client.get
             ? await client("/homepage", { method: "GET" })
