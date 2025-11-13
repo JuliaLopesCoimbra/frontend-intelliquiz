@@ -1,37 +1,52 @@
-IntelliQuiz 🎓✨
-Objetivo do Projeto
+# IntelliQuiz 📝 🤖
 
-O IntelliQuiz é uma plataforma interativa de quizzes que permite aos usuários criar, responder e gerenciar quizzes personalizados. A proposta é oferecer uma experiência gamificada e dinâmica para aprendizado, treinamento e diversão, tanto em ambientes acadêmicos quanto corporativos.
+## Objetivo
 
-Tecnologias Utilizadas
+O IntelliQuiz é uma aplicação onde propõe a criação de quizzes utilizando do auxílio de inteligência artificial, com recursos de geração ou autocompletagem de perguntas.
 
-Front-end: Next.js (React, TailwindCSS, Shadcn/UI)
+A aplicação também apresenta um sistema de autenticação pelo Firebase, controlando o uso da plataforma e registrando dados dos usuários.
 
-Estrutura do Código-Fonte e Minha Contribuição
-Parte que desenvolvi (Front-end)
+## Objetivo do código-fonte feito por cada integrante
 
-Neste fork, fui responsável pelo desenvolvimento da interface principal em Next.js, com foco nas rotas e funcionalidades essenciais para interação do usuário:
+### Yan
 
-/signin → Página de login com autenticação integrada ao backend.
+- Criação do back-end com seus endpoints para integração futura ao front-end
+- Setup do banco de dados e sua integração ao back-end
+- Desenvolvimento da modelagem do banco de dados para criação das entidades no GORM
 
-/signup → Página de cadastro com validação de dados.
+### Julia 
+- ⁠Criação do Front-end
+- ⁠Desenvolvimento da interface do usuário utilizando boas práticas de design responsivo e acessibilidade.
+- ⁠Estruturação de páginas e fluxos principais com foco em experiência do usuário (UX).
+- ⁠Prototipagem
+- ⁠Criação de protótipos funcionais para validação de ideias e fluxos antes da implementação final.
+- ⁠Utilização de ferramentas de prototipagem para acelerar a tomada de decisão junto ao time.
+- ⁠Criação de Componentes
+- ⁠Desenvolvimento de componentes reutilizáveis para padronizar a aplicação e otimizar a manutenção do código.
+- ⁠Implementação seguindo guidelines de design system e boas práticas de componentização.
+- ⁠Conexão com o Back-end
+- ⁠Integração do front-end com APIs e serviços back-end.
+- ⁠Consumo de dados e tratamento de estados da aplicação.
+- ⁠Garantia da comunicação eficiente entre front-end e back-end, com foco em segurança e performance.
 
-/dashboard → Painel do usuário para visualização de quizzes criados e respondidos.
+## Stack utilizada
 
-/create → Página para criação de novos quizzes, com campos dinâmicos para perguntas e respostas.
+**Front-end:**
+- NextJS (React)
+- TailwindCSS
 
-Integração com o Projeto Final
+**Back-end:**
+- Go 1.24.6
+- Gin Framework
+- GORM
 
-O código-fonte que desenvolvi se integra ao projeto final da seguinte forma:
+**Banco de Dados:**
+- PostgreSQL 17
 
-As rotas do front-end consomem as APIs criadas no back-end, que ainda está em construção e garantindo que o usuário possa cadastrar, autenticar-se e interagir com quizzes.
+**Arquitetura da Aplicação:**
+- REST
+- MVC (Model-View-Controller)
 
-A dashboard será conectada ao banco de dados via API, exibindo em tempo real os quizzes criados e os resultados obtidos.
-
-A parte de criação de quizzes (/create) fornece os formulários estruturados que, ao serem enviados, alimentam a base de dados central do projeto, compondo o módulo de conteúdo dinâmico.
-
-Links Importantes
-
-Repositório Central da Organização: IntelliQuiz Central
-
-Meu Fork: Julia Lopes Coimbra - IntelliQuiz Frontend
+**Containerização:**
+- Docker com Docker Compose
+- Front-end e back-end conectados via network
