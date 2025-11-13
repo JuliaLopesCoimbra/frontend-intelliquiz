@@ -1,6 +1,12 @@
 "use client";
-import { useRef } from "react";
-import { useEffect, useMemo, useState } from "react";
+
+import {
+  useRef,
+  useEffect,
+  useMemo,
+  useState,
+  Suspense,
+} from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { httpRetry as http } from "@/lib/http-retry";
 import { getUserToken } from "@/lib/auth.client";
@@ -38,9 +44,10 @@ type ApiQuiz = {
   category_id: string;
   category?: { id: string; name: string };
   questions: ApiQuestion[];
+  image_url?: string;
 };
 
-export default function EditQuiz() {
+function EditQuizInner() {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -61,8 +68,10 @@ export default function EditQuiz() {
   const [imgTouched, setImgTouched] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-   const didFetchRef = useRef(false);
 
+  const didFetchRef = useRef(false);
+
+  // guarda next e checa sessão
   useEffect(() => {
     const t = getUserToken();
     if (!t) {
@@ -73,9 +82,10 @@ export default function EditQuiz() {
     setChecking(false);
   }, [pathname, params, router]);
 
+  // carrega categorias + quiz
   useEffect(() => {
     if (checking) return;
-    if (didFetchRef.current) return; 
+    if (didFetchRef.current) return;
     didFetchRef.current = true;
 
     (async () => {
@@ -85,7 +95,8 @@ export default function EditQuiz() {
         setLoading(false);
       }
     })();
-  }, [checking]); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checking]);
 
   useEffect(() => {
     const found = categories.find((c) => c.id === categoryId);
@@ -97,12 +108,13 @@ export default function EditQuiz() {
     try {
       const u = new URL(str);
       if (!/^https?:$/.test(u.protocol)) return false;
-      const pathname = u.pathname.toLowerCase();
-      return /\.(jpg|jpeg|png|webp|gif)$/.test(pathname);
+      const path = u.pathname.toLowerCase();
+      return /\.(jpg|jpeg|png|webp|gif)$/.test(path);
     } catch {
       return false;
     }
   }
+
   const isImageOk = !imageUrl ? true : isValidImageUrlStrict(imageUrl);
 
   async function loadCategories() {
@@ -121,16 +133,13 @@ export default function EditQuiz() {
     if (!quizId) return;
     try {
       const token = getUserToken();
-      const res = await http<{ data: ApiQuiz & { image_url?: string } }>(
-        `/quizzes/${quizId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const res = await http<{ data: ApiQuiz }>(`/quizzes/${quizId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const q = res.data;
       setQuizTitle(q.name || "");
       setCategoryId(q.category_id || q.category?.id || "");
-      setImageUrl((q as any)?.image_url || "");
+      setImageUrl(q.image_url || "");
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
@@ -153,9 +162,10 @@ export default function EditQuiz() {
   async function handleSaveAndContinue() {
     setError(null);
 
-    if (!quizId) return setError("ID do quiz inválido.");
-    if (!quizTitle.trim()) return setError("Título do quiz é obrigatório.");
-    if (!categoryId) return setError("Categoria é obrigatória.");
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     if (imageUrl && !isValidImageUrlStrict(imageUrl)) {
       return setError(
@@ -171,7 +181,6 @@ export default function EditQuiz() {
         name: quizTitle.trim(),
         category_id: categoryId,
       };
-      // só inclui image_url se o usuário digitou algo
       if (imageUrl) payload.image_url = imageUrl;
 
       await http(`/quizzes/${quizId}`, {
@@ -184,13 +193,11 @@ export default function EditQuiz() {
       });
 
       router.replace(
-        `/client/edit/step2?quizId=${quizId}&title=${encodeURIComponent(
-          quizTitle
-        )}&category=${encodeURIComponent(
-          categoryId
-        )}&categoryName=${encodeURIComponent(
-          categoryName
-        )}&imageUrl=${encodeURIComponent(imageUrl || "")}`
+        `/client/edit/step2?quizId=${quizId}` +
+          `&title=${encodeURIComponent(quizTitle)}` +
+          `&category=${encodeURIComponent(categoryId)}` +
+          `&categoryName=${encodeURIComponent(categoryName)}` +
+          `&imageUrl=${encodeURIComponent(imageUrl || "")}`
       );
     } catch (err: any) {
       const status = err?.status || err?.response?.status;
@@ -199,14 +206,12 @@ export default function EditQuiz() {
         router.replace(`/login?next=${encodeURIComponent(next)}`);
         return;
       }
-      // mostra exatamente a msg que o seu http.ts propaga
       setError(err?.message || "Erro ao salvar alterações.");
     } finally {
       setSaving(false);
     }
   }
 
-  
   async function handleConfirmDelete() {
     setDeleteError(null);
     try {
@@ -216,7 +221,6 @@ export default function EditQuiz() {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      // volta pra listagem com flag
       router.replace("/client/dashboard");
     } catch (err: any) {
       const status = err?.status || err?.response?.status;
@@ -246,7 +250,6 @@ export default function EditQuiz() {
 
   return (
     <>
-     
       <div
         className="pointer-events-none fixed inset-0 -z-10"
         style={{
@@ -272,7 +275,7 @@ export default function EditQuiz() {
         </button>
 
         <div className="flex items-center gap-3">
-          {/* 🔴 Botão Excluir com modal */}
+          {/* Botão Excluir com modal */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -385,7 +388,6 @@ export default function EditQuiz() {
                 className="h-11 text-neutral-100 placeholder:text-neutral-500"
               />
             </div>
-            {/* Título (sem mudança) */}
 
             {/* Link da imagem */}
             <div className="space-y-2">
@@ -398,7 +400,6 @@ export default function EditQuiz() {
                 onBlur={() => setImgTouched(true)}
                 className="h-11 text-neutral-100 placeholder:text-neutral-500"
               />
-              {/* erro de form */}
               {imageUrl && imgTouched && !isImageOk && (
                 <p className="text-sm text-red-400">
                   Invalid image URL format. Image URL must end with .jpg, .jpeg,
@@ -406,7 +407,6 @@ export default function EditQuiz() {
                 </p>
               )}
 
-              {/* prévia só quando válido */}
               {imageUrl && isImageOk && (
                 <div className="mt-2 rounded-lg overflow-hidden border border-neutral-800 bg-neutral-900">
                   <img
@@ -424,9 +424,8 @@ export default function EditQuiz() {
               onClick={handleSaveAndContinue}
               disabled={
                 saving ||
-                !quizTitle.trim() ||
-                !categoryId ||
-                (!!imageUrl && !isImageOk) // 🔒 bloqueia se inválido
+                !!validationError ||
+                (!!imageUrl && !isImageOk)
               }
               className="w-full h-12 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-lg font-semibold disabled:opacity-40"
             >
@@ -436,5 +435,21 @@ export default function EditQuiz() {
         </Card>
       </main>
     </>
+  );
+}
+
+export default function EditQuiz() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center px-4">
+          <p className="text-neutral-200 text-lg">
+            Carregando editor de quiz...
+          </p>
+        </main>
+      }
+    >
+      <EditQuizInner />
+    </Suspense>
   );
 }

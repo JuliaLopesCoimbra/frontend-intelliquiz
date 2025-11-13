@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/store";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import Header from "@/components/Header";
 import type { Role } from "@/lib/types";
 import { http } from "@/lib/http";
 import { setUserToken, setRefreshToken } from "../../../lib/auth.client";
+
 // Tipos mínimos para o payload/response do /login
 type LoginPayload = {
   username: string;
@@ -29,7 +31,7 @@ type LoginResponse = {
   message?: string;
 };
 
-export default function Login() {
+function LoginInner() {
   const [emailOrUsername, setEmailOrUsername] = useState(""); // permite digitar email ou username
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,6 +45,7 @@ export default function Login() {
     () => searchParams.get("next") || "/client/dashboard",
     [searchParams]
   );
+
   const canSubmit =
     emailOrUsername.trim().length > 0 && senha.trim().length > 0;
 
@@ -125,9 +128,9 @@ export default function Login() {
   return (
     <>
       <Header />
-      <div className="relative min-h-[88vh]  ">
-        <main className="mx-auto grid max-w-md place-items-center  px-4 py-10 text-white">
-          <Card className="w-full border-neutral-800/80 bg-neutral-950/10 ">
+      <div className="relative min-h-[88vh]">
+        <main className="mx-auto grid max-w-md place-items-center px-4 py-10 text-white">
+          <Card className="w-full border-neutral-800/80 bg-neutral-950/10">
             <CardHeader>
               <CardTitle className="text-3xl font-semibold tracking-tight text-amber-300">
                 Entrar
@@ -139,7 +142,9 @@ export default function Login() {
 
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label className="text-base text-white">E-mail ou usuário</Label>
+                <Label className="text-base text-white">
+                  E-mail ou usuário
+                </Label>
                 <Input
                   type="text"
                   placeholder="voce@exemplo.com ou johndoe"
@@ -210,5 +215,21 @@ export default function Login() {
         </main>
       </div>
     </>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center px-4">
+          <div className="text-neutral-200 text-lg">
+            Carregando tela de login...
+          </div>
+        </main>
+      }
+    >
+      <LoginInner />
+    </Suspense>
   );
 }

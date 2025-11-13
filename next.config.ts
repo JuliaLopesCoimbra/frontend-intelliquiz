@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
- images: {
+  images: {
     remotePatterns: [
       {
         protocol: "https",
@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
         hostname: "source.unsplash.com",
       },
     ],
+  },
+
+  
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 };
 

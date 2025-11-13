@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  Suspense,
+} from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { getUserToken } from "@/lib/auth.client";
 import { http } from "@/lib/http";
@@ -15,11 +20,11 @@ type Choice = { content: string; is_correct: boolean };
 type Question = {
   content: string;
   choices: Choice[];
-  aiSuggestions?: string[];       
-  aiChoiceSuggestions?: string[];  
+  aiSuggestions?: string[];
+  aiChoiceSuggestions?: string[];
 };
 
-export default function CreateQuizStep2() {
+function CreateQuizStep2Inner() {
   const router = useRouter();
   const params = useSearchParams();
   const pathname = usePathname();
@@ -32,7 +37,6 @@ export default function CreateQuizStep2() {
   const [checking, setChecking] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
 
   const [questions, setQuestions] = useState<Question[]>([
     {
@@ -48,11 +52,10 @@ export default function CreateQuizStep2() {
 
   const { me, loadingMe } = useAuthMe();
 
-
   const [aiLoadingIndex, setAiLoadingIndex] = useState<number | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
- 
+  // guarda sessão
   useEffect(() => {
     const t = getUserToken();
     if (!t) {
@@ -62,54 +65,50 @@ export default function CreateQuizStep2() {
     }
     setChecking(false);
   }, [router, pathname, params]);
- 
- useEffect(() => {
-  if (checking) return;
 
-  try {
-    const raw = sessionStorage.getItem("iq:generatedQuiz");
-    if (!raw) return;
+  // carrega quiz gerado pela IA (step1)
+  useEffect(() => {
+    if (checking) return;
 
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || !parsed.length) return;
+    try {
+      const raw = sessionStorage.getItem("iq:generatedQuiz");
+      if (!raw) return;
 
-    const mapped: Question[] = parsed.map((q: any) => {
-      const baseChoices: Choice[] =
-        Array.isArray(q?.choices) && q.choices.length
-          ? q.choices.map((c: any) => ({
-              content: String(c?.content ?? ""),
-              is_correct: !!c?.is_correct,
-            }))
-          : [
-              { content: "", is_correct: true },
-              { content: "", is_correct: false },
-            ];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || !parsed.length) return;
 
-      // garante pelo menos uma correta
-      if (!baseChoices.some((c) => c.is_correct) && baseChoices.length > 0) {
-        baseChoices[0].is_correct = true;
-      }
+      const mapped: Question[] = parsed.map((q: any) => {
+        const baseChoices: Choice[] =
+          Array.isArray(q?.choices) && q.choices.length
+            ? q.choices.map((c: any) => ({
+                content: String(c?.content ?? ""),
+                is_correct: !!c?.is_correct,
+              }))
+            : [
+                { content: "", is_correct: true },
+                { content: "", is_correct: false },
+              ];
 
-      return {
-        content: String(q?.question_content ?? ""),
-        choices: baseChoices,
-        aiSuggestions: [],
-        aiChoiceSuggestions: baseChoices
-          .map((c) => c.content)
-          .filter(Boolean),
-      };
-    });
+        if (!baseChoices.some((c) => c.is_correct) && baseChoices.length > 0) {
+          baseChoices[0].is_correct = true;
+        }
 
-    setQuestions(mapped);
-    // limpa pra não reaplicar se recarregar a página
-    sessionStorage.removeItem("iq:generatedQuiz");
-  } catch (e) {
-    console.error("Erro ao carregar quiz gerado da IA:", e);
-  }
-}, [checking]);
+        return {
+          content: String(q?.question_content ?? ""),
+          choices: baseChoices,
+          aiSuggestions: [],
+          aiChoiceSuggestions: baseChoices
+            .map((c) => c.content)
+            .filter(Boolean),
+        };
+      });
 
-
-
+      setQuestions(mapped);
+      sessionStorage.removeItem("iq:generatedQuiz");
+    } catch (e) {
+      console.error("Erro ao carregar quiz gerado da IA:", e);
+    }
+  }, [checking]);
 
   function addQuestion() {
     setQuestions((prev) => [
@@ -158,7 +157,7 @@ export default function CreateQuizStep2() {
       const clone = [...prev];
       const q = clone[qIndex];
       if (!q) return prev;
-      if (q.choices.length <= 2) return prev; 
+      if (q.choices.length <= 2) return prev;
 
       const newChoices = q.choices.filter((_, i) => i !== cIndex);
       const stillHasCorrect = newChoices.some((c) => c.is_correct);
@@ -197,7 +196,6 @@ export default function CreateQuizStep2() {
     });
   }
 
-  
   function applyChoiceSuggestion(qIndex: number, suggestion: string) {
     setQuestions((prev) => {
       const clone = [...prev];
@@ -206,15 +204,12 @@ export default function CreateQuizStep2() {
 
       const choices = [...q.choices];
 
-     
       let targetIdx = choices.findIndex((c) => !c.content.trim());
 
       if (targetIdx === -1) {
-       
         if (choices.length < 5) {
           choices.push({ content: suggestion, is_correct: false });
         } else {
-          
           let lastIdx = -1;
           for (let i = choices.length - 1; i >= 0; i--) {
             if (!choices[i].is_correct) {
@@ -226,7 +221,6 @@ export default function CreateQuizStep2() {
           choices[lastIdx] = { ...choices[lastIdx], content: suggestion };
         }
       } else {
-      
         choices[targetIdx] = { ...choices[targetIdx], content: suggestion };
       }
 
@@ -235,9 +229,8 @@ export default function CreateQuizStep2() {
     });
   }
 
- 
   async function handleGenerateQuestionAI(qIndex: number) {
-    if (!categoryId || !name.trim()) return; 
+    if (!categoryId || !name.trim()) return;
 
     try {
       setAiError(null);
@@ -261,6 +254,7 @@ export default function CreateQuizStep2() {
           quiz_title: name.trim(),
         }),
       });
+
       const payload = res?.data?.data ?? res?.data ?? res;
       const questionContent: string | undefined = payload?.question_content;
       const choicesFromIa: any[] = Array.isArray(payload?.choices)
@@ -296,7 +290,6 @@ export default function CreateQuizStep2() {
     }
   }
 
-  // validação
   const validationError = useMemo(() => {
     if (!name.trim()) return "Título do quiz é obrigatório.";
     if (!categoryId) return "Categoria é obrigatória.";
@@ -359,7 +352,8 @@ export default function CreateQuizStep2() {
       };
 
       const res = await http<
-        { data?: { id: string; slug?: string } } | { id: string; slug?: string }
+        | { data?: { id: string; slug?: string } }
+        | { id: string; slug?: string }
       >("/quizzes", {
         method: "POST",
         headers: {
@@ -479,7 +473,6 @@ export default function CreateQuizStep2() {
                   <Label className="text-base">Pergunta {qIndex + 1}</Label>
 
                   <div className="flex items-center gap-2">
-                    {/* 🔮 Botão Gerar questão + escolhas com IA */}
                     <Button
                       type="button"
                       onClick={() => handleGenerateQuestionAI(qIndex)}
@@ -488,7 +481,7 @@ export default function CreateQuizStep2() {
                         !name.trim() ||
                         aiLoadingIndex === qIndex
                       }
-                      className={`
+                      className="
                         h-9 px-3 text-xs font-semibold
                         flex items-center gap-1
                         bg-black border border-amber-400
@@ -496,7 +489,7 @@ export default function CreateQuizStep2() {
                         hover:bg-amber-400/20 hover:text-amber-300
                         rounded-md transition-all
                         disabled:opacity-40 disabled:hover:bg-black disabled:hover:text-amber-400
-                      `}
+                      "
                     >
                       <Sparkles size={14} className="text-amber-400" />
                       {aiLoadingIndex === qIndex
@@ -520,7 +513,6 @@ export default function CreateQuizStep2() {
                   </div>
                 </div>
 
-                {/* 🔮 Sugestões da IA para o enunciado */}
                 {q.aiSuggestions && q.aiSuggestions.length > 0 && (
                   <div className="flex flex-wrap gap-2 text-xs mb-1">
                     {q.aiSuggestions.map((s, idx) => (
@@ -561,14 +553,12 @@ export default function CreateQuizStep2() {
                 />
 
                 <div className="space-y-3">
-                  {/* Label */}
                   <div className="flex items-center justify-between gap-2">
                     <Label className="text-sm text-neutral-400">
                       Respostas (máx. 5) — selecione a correta
                     </Label>
                   </div>
 
-                  {/* 🔮 Chips de sugestões de alternativas */}
                   {q.aiChoiceSuggestions &&
                     q.aiChoiceSuggestions.length > 0 && (
                       <div className="flex flex-wrap gap-2 text-xs mb-1">
@@ -672,5 +662,21 @@ export default function CreateQuizStep2() {
         </Card>
       </main>
     </>
+  );
+}
+
+export default function CreateQuizStep2() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center px-4">
+          <p className="text-neutral-200 text-lg">
+            Carregando editor de perguntas...
+          </p>
+        </main>
+      }
+    >
+      <CreateQuizStep2Inner />
+    </Suspense>
   );
 }

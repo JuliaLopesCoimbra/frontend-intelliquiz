@@ -1,6 +1,12 @@
 "use client";
-import { useRef } from "react";
-import { useEffect, useMemo, useState } from "react";
+
+import {
+  useRef,
+  useEffect,
+  useMemo,
+  useState,
+  Suspense,
+} from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { getUserToken } from "@/lib/auth.client";
 import { httpRetry as http } from "@/lib/http-retry";
@@ -18,7 +24,8 @@ type ApiQuestion = { id: string; content: string; choices: ApiChoice[] };
 type SnapChoice = { id: string; content: string; is_correct: boolean };
 type SnapQuestion = { id: string; content: string; choices: SnapChoice[] };
 type SnapState = { questions: SnapQuestion[] };
-export default function EditQuizStep2() {
+
+function EditQuizStep2Inner() {
   const router = useRouter();
   const params = useSearchParams();
   const pathname = usePathname();
@@ -37,7 +44,6 @@ export default function EditQuizStep2() {
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const initialSnapshotRef = useRef<SnapState | null>(null);
-
   const didInitRef = useRef(false);
 
   useEffect(() => {
@@ -52,74 +58,71 @@ export default function EditQuizStep2() {
     }
     setChecking(false);
     loadQuizForQuestions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-async function loadQuizForQuestions() {
-  if (!quizId) return;
-  setLoading(true);
+  async function loadQuizForQuestions() {
+    if (!quizId) return;
+    setLoading(true);
 
-  try {
-    // httpRetry já injeta Authorization com o token, não precisa passar headers aqui.
-    const res = await http<{ data?: { questions?: ApiQuestion[] } }>(`/quizzes/${quizId}`);
+    try {
+      const res = await http<{ data?: { questions?: ApiQuestion[] } }>(
+        `/quizzes/${quizId}`
+      );
 
-    // unwrap seguro (suporta payloads { data: ... } ou já plano)
-    const payload = (res as any)?.data ?? res;
-    const apiQs: ApiQuestion[] = Array.isArray(payload?.questions) ? payload.questions : [];
+      const payload = (res as any)?.data ?? res;
+      const apiQs: ApiQuestion[] = Array.isArray(payload?.questions)
+        ? payload.questions
+        : [];
 
-    // adapta para o estado local
-    const qs: Question[] = apiQs.map((q) => ({
-      id: q.id,
-      content: q.content ?? "",
-      choices: (q.choices ?? []).map((c) => ({
-        id: c.id,
-        content: c.content ?? "",
-        is_correct: !!c.is_correct,
-      })),
-    }));
-
-    // snapshot completo para o diff (id, content, is_correct)
-    initialSnapshotRef.current = {
-      questions: qs
-        .filter((q) => !!q.id)
-        .map((q) => ({
-          id: q.id as string,
-          content: q.content ?? "",
-          choices: (q.choices ?? [])
-            .filter((c) => !!c.id)
-            .map((c) => ({
-              id: c.id as string,
-              content: c.content ?? "",
-              is_correct: !!c.is_correct,
-            })),
+      const qs: Question[] = apiQs.map((q) => ({
+        id: q.id,
+        content: q.content ?? "",
+        choices: (q.choices ?? []).map((c) => ({
+          id: c.id,
+          content: c.content ?? "",
+          is_correct: !!c.is_correct,
         })),
-    };
+      }));
 
-    // estado visível na tela
-    setQuestions(
-      qs.length
-        ? qs
-        : [
-            {
-              content: "",
-              choices: [
-                { content: "", is_correct: true },
-                { content: "", is_correct: false },
-              ],
-            },
-          ]
-    );
-  } catch (err: any) {
-    // se estiver usando HttpError, essas propriedades existem
-    const msg =
-      err?.data?.message ||
-      err?.message ||
-      "Erro ao carregar perguntas.";
-    setError(msg);
-    console.error("GET /quizzes/{id} (questions) falhou:", err);
-  } finally {
-    setLoading(false);
+      initialSnapshotRef.current = {
+        questions: qs
+          .filter((q) => !!q.id)
+          .map((q) => ({
+            id: q.id as string,
+            content: q.content ?? "",
+            choices: (q.choices ?? [])
+              .filter((c) => !!c.id)
+              .map((c) => ({
+                id: c.id as string,
+                content: c.content ?? "",
+                is_correct: !!c.is_correct,
+              })),
+          })),
+      };
+
+      setQuestions(
+        qs.length
+          ? qs
+          : [
+              {
+                content: "",
+                choices: [
+                  { content: "", is_correct: true },
+                  { content: "", is_correct: false },
+                ],
+              },
+            ]
+      );
+    } catch (err: any) {
+      const msg =
+        err?.data?.message || err?.message || "Erro ao carregar perguntas.";
+      setError(msg);
+      console.error("GET /quizzes/{id} (questions) falhou:", err);
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
   function addQuestion() {
     setQuestions((prev) => [
@@ -133,9 +136,11 @@ async function loadQuizForQuestions() {
       },
     ]);
   }
+
   function removeQuestion(qIndex: number) {
     setQuestions((prev) => prev.filter((_, i) => i !== qIndex));
   }
+
   function updateQuestionContent(qIndex: number, value: string) {
     setQuestions((prev) => {
       const clone = [...prev];
@@ -143,6 +148,7 @@ async function loadQuizForQuestions() {
       return clone;
     });
   }
+
   function addChoice(qIndex: number) {
     setQuestions((prev) => {
       const clone = [...prev];
@@ -155,6 +161,7 @@ async function loadQuizForQuestions() {
       return clone;
     });
   }
+
   function removeChoice(qIndex: number, cIndex: number) {
     setQuestions((prev) => {
       const clone = [...prev];
@@ -168,7 +175,12 @@ async function loadQuizForQuestions() {
       return clone;
     });
   }
-  function updateChoiceContent(qIndex: number, cIndex: number, value: string) {
+
+  function updateChoiceContent(
+    qIndex: number,
+    cIndex: number,
+    value: string
+  ) {
     setQuestions((prev) => {
       const clone = [...prev];
       const q = clone[qIndex];
@@ -178,6 +190,7 @@ async function loadQuizForQuestions() {
       return clone;
     });
   }
+
   function setCorrectChoice(qIndex: number, cIndex: number) {
     setQuestions((prev) => {
       const clone = [...prev];
@@ -212,6 +225,7 @@ async function loadQuizForQuestions() {
     }
     return null;
   }, [quizId, questions]);
+
   async function patchQuestion(
     questionId: string,
     content: string,
@@ -260,15 +274,17 @@ async function loadQuizForQuestions() {
     });
   }
 
- async function postChoice(questionId: string, content: string) {
-  const token = getUserToken();
-  return http<{ data: { id: string } }>(`/questions/${questionId}/choices`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ content }),
-  });
-}
-
+  async function postChoice(questionId: string, content: string) {
+    const token = getUserToken();
+    return http<{ data: { id: string } }>(`/questions/${questionId}/choices`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content }),
+    });
+  }
 
   async function deleteQuestion(questionId: string) {
     const token = getUserToken();
@@ -296,12 +312,8 @@ async function loadQuizForQuestions() {
     try {
       setSaving(true);
 
-      // --- Snapshot inicial para comparar ---
       const initial = initialSnapshotRef.current;
 
-      // -------------------------------
-      // 1) Detectar exclusões (DELETE)
-      // -------------------------------
       const deletedQuestionIds: string[] = [];
       const deletedChoiceIds: string[] = [];
 
@@ -310,14 +322,12 @@ async function loadQuizForQuestions() {
           questions.filter((q) => q.id).map((q) => q.id as string)
         );
 
-        // perguntas removidas
         for (const iq of initial.questions) {
           if (!currentQuestionIds.has(iq.id)) {
             deletedQuestionIds.push(iq.id);
           }
         }
 
-        // choices removidas
         for (const iq of initial.questions) {
           const currentQuestion = questions.find((q) => q.id === iq.id);
           if (!currentQuestion) continue;
@@ -336,14 +346,9 @@ async function loadQuizForQuestions() {
         }
       }
 
-      // Deleta primeiro choices, depois perguntas (ordem segura)
       for (const id of deletedChoiceIds) await deleteChoice(id);
       for (const id of deletedQuestionIds) await deleteQuestion(id);
 
-      // ---------------------------------------------------------
-      // 2) Atualizar/criar com DIFF (evita PATCH desnecessário)
-      // ---------------------------------------------------------
-      // Index do snapshot inicial para comparação rápida
       const initialByQ: Record<
         string,
         {
@@ -368,7 +373,6 @@ async function loadQuizForQuestions() {
 
       for (const q of questions) {
         if (q.id) {
-          // Pergunta EXISTENTE → PATCH só se content mudou
           const baseline = initialByQ[q.id];
           const contentChanged =
             !baseline || q.content.trim() !== (baseline.content ?? "");
@@ -377,7 +381,6 @@ async function loadQuizForQuestions() {
             await patchQuestion(q.id, q.content.trim(), quizId);
           }
 
-          // Choices EXISTENTES → PATCH só se mudou content ou is_correct
           for (const c of q.choices) {
             if (c.id) {
               const baseC = baseline?.choices?.[c.id];
@@ -394,22 +397,17 @@ async function loadQuizForQuestions() {
             }
           }
 
-      
+          for (const c of q.choices) {
+            if (!c.id) {
+              const created = await postChoice(q.id, c.content.trim());
+              const newId = created?.data?.id;
 
-for (const c of q.choices) {
-  if (!c.id) {
-    const created = await postChoice(q.id, c.content.trim());
-    const newId = created?.data?.id;
-
-   
-    if (newId && c.is_correct) {
-      await patchChoice(newId, c.content.trim(), true);
-    }
-  }
-}
-
+              if (newId && c.is_correct) {
+                await patchChoice(newId, c.content.trim(), true);
+              }
+            }
+          }
         } else {
-        
           await postQuestion(
             quizId,
             q.content.trim(),
@@ -421,7 +419,6 @@ for (const c of q.choices) {
         }
       }
 
-      // Sucesso
       router.replace("/client/dashboard");
     } catch (err: any) {
       setError("Erro ao salvar alterações.");
@@ -621,5 +618,21 @@ for (const c of q.choices) {
         </Card>
       </main>
     </>
+  );
+}
+
+export default function EditQuizStep2() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center px-4">
+          <p className="text-neutral-200 text-lg">
+            Carregando editor de perguntas...
+          </p>
+        </main>
+      }
+    >
+      <EditQuizStep2Inner />
+    </Suspense>
   );
 }

@@ -8,17 +8,28 @@ export type QuizApi = {
   name: string;
   category_id: string;
   category?: { id: string; name: string };
+
+  
+  description?: string;
+  image_url?: string;
+
   created_by: string;
   user?: { id: string; username: string; name?: string };
+
   likes: number;
   curator_pick: boolean;
-  games_played: number;
+
+ 
+  games?: number;
+  games_played?: number;
+
   created_at: string;
   updated_at: string;
 };
 
+
 export type ListQuizzesResponse = {
-  maxPage: number;   // zero-based (ex.: 0 => 1 página, 4 => 5 páginas)
+  maxPage: number;   
   quizzes: QuizApi[];
 };
 
@@ -34,12 +45,13 @@ export async function getQuizzes(
   const url = `${base}/quizzes?page=${page}&limit=${limit}`;
   console.log("Fetching quizzes from:", url);
 
-  try {
-    const cookieStore = cookies();
+    try {
+    const cookieStore = await cookies();
     const token =
       cookieStore.get("access_token")?.value ||
       cookieStore.get("token")?.value ||
       "";
+
 
     const res = await fetch(url, {
       method: "GET",

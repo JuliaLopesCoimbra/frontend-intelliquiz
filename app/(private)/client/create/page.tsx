@@ -1,5 +1,6 @@
 "use client";
-import { useMemo, useState, useEffect } from "react";
+
+import { useMemo, useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { http } from "@/lib/http";
 import { getUserToken } from "@/lib/auth.client";
@@ -8,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Sparkles } from "lucide-react";
-
 import {
   Select,
   SelectTrigger,
@@ -20,7 +20,7 @@ import { useAuthMe } from "@/app/hooks/useAuthMe";
 
 type Category = { id: string; name: string };
 
-export default function CreateQuiz() {
+function CreateQuizInner() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -44,9 +44,8 @@ export default function CreateQuiz() {
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
 
- 
   const [fullAiLoading, setFullAiLoading] = useState(false);
-const [fullAiError, setFullAiError] = useState<string | null>(null);
+  const [fullAiError, setFullAiError] = useState<string | null>(null);
 
   useEffect(() => {
     const t = getUserToken();
@@ -194,75 +193,69 @@ const [fullAiError, setFullAiError] = useState<string | null>(null);
       setAiLoading(false);
     }
   }
- async function handleGenerateQuizAI() {
-  if (!categoryId) {
-    alert("Selecione uma categoria para gerar o quiz com IA.");
-    return;
-  }
 
-  try {
-    setFullAiError(null);
-    setFullAiLoading(true);
-    const token = getUserToken();
-    if (!token) {
-      const next = `${pathname}${
-        searchParams?.toString() ? `?${searchParams.toString()}` : ""
-      }`;
-      router.replace(`/login?next=${encodeURIComponent(next)}`);
+  // 🔮 IA – gerar quiz completo
+  async function handleGenerateQuizAI() {
+    if (!categoryId) {
+      alert("Selecione uma categoria para gerar o quiz com IA.");
       return;
     }
 
-    const res = await http<any>("/ai/generate-quiz", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        category_id: categoryId,
-      }),
-    });
-
-   
-
-    const payload = res?.data?.data ?? res?.data ?? res;
-    const quizTitleFromIa: string = payload?.quiz_title ?? "";
-    const questionsFromIa: any[] = Array.isArray(payload?.questions)
-      ? payload.questions
-      : [];
-
-    if (!quizTitleFromIa || !questionsFromIa.length) {
-      setFullAiError(
-        "IA não retornou título e perguntas suficientes para gerar o quiz."
-      );
-      return;
-    }
-
-    
-    setQuizTitle(quizTitleFromIa);
-
-   
     try {
-      sessionStorage.setItem(
-        "iq:generatedQuiz",
-        JSON.stringify(questionsFromIa)
+      setFullAiError(null);
+      setFullAiLoading(true);
+      const token = getUserToken();
+      if (!token) {
+        const next = `${pathname}${
+          searchParams?.toString() ? `?${searchParams.toString()}` : ""
+        }`;
+        router.replace(`/login?next=${encodeURIComponent(next)}`);
+        return;
+      }
+
+      const res = await http<any>("/ai/generate-quiz", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          category_id: categoryId,
+        }),
+      });
+
+      const payload = res?.data?.data ?? res?.data ?? res;
+      const quizTitleFromIa: string = payload?.quiz_title ?? "";
+      const questionsFromIa: any[] = Array.isArray(payload?.questions)
+        ? payload.questions
+        : [];
+
+      if (!quizTitleFromIa || !questionsFromIa.length) {
+        setFullAiError(
+          "IA não retornou título e perguntas suficientes para gerar o quiz."
+        );
+        return;
+      }
+
+      setQuizTitle(quizTitleFromIa);
+
+      try {
+        sessionStorage.setItem(
+          "iq:generatedQuiz",
+          JSON.stringify(questionsFromIa)
+        );
+      } catch (e) {
+        console.error("Erro ao salvar quiz gerado no sessionStorage:", e);
+      }
+    } catch (err: any) {
+      console.error("Erro ao gerar quiz completo com IA:", err);
+      setFullAiError(
+        "Não foi possível gerar o quiz completo agora. Tente novamente."
       );
-    } catch (e) {
-      console.error("Erro ao salvar quiz gerado no sessionStorage:", e);
+    } finally {
+      setFullAiLoading(false);
     }
-
-    
-
-  } catch (err: any) {
-    console.error("Erro ao gerar quiz completo com IA:", err);
-    setFullAiError(
-      "Não foi possível gerar o quiz completo agora. Tente novamente."
-    );
-  } finally {
-    setFullAiLoading(false);
   }
-}
-
 
   useEffect(() => {
     if (checking) return;
@@ -340,7 +333,7 @@ const [fullAiError, setFullAiError] = useState<string | null>(null);
         </div>
       </header>
 
-      <main className="mt-10  flex justify-center items-center px-4">
+      <main className="mt-10 flex justify-center items-center px-4">
         <Card className="w-full max-w-lg bg-neutral-950 border-neutral-800 text-neutral-100">
           <CardHeader>
             <CardTitle className="text-2xl text-amber-400 font-semibold">
@@ -381,29 +374,28 @@ const [fullAiError, setFullAiError] = useState<string | null>(null);
                 </Select>
               )}
 
-            
               <Button
-      type="button"
-      onClick={handleGenerateQuizAI}
-      disabled={!categoryId || fullAiLoading}
-      className={`
-        mt-2 w-full h-10 text-xs font-semibold
-        flex items-center justify-center gap-1
-        bg-black border border-amber-400
-        text-amber-400 
-        hover:bg-amber-400/20 hover:text-amber-300
-        rounded-md transition-all
-        disabled:opacity-40 disabled:hover:bg-black disabled:hover:text-amber-400
-      `}
-    >
-      <Sparkles size={14} className="text-amber-400" />
-      {fullAiLoading
-        ? "Gerando quiz completo..."
-        : "Gerar quiz completo com IA"}
-    </Button>
-    {fullAiError && (
-      <p className="text-xs text-red-400 mt-1">{fullAiError}</p>
-    )}
+                type="button"
+                onClick={handleGenerateQuizAI}
+                disabled={!categoryId || fullAiLoading}
+                className="
+                  mt-2 w-full h-10 text-xs font-semibold
+                  flex items-center justify-center gap-1
+                  bg-black border border-amber-400
+                  text-amber-400 
+                  hover:bg-amber-400/20 hover:text-amber-300
+                  rounded-md transition-all
+                  disabled:opacity-40 disabled:hover:bg-black disabled:hover:text-amber-400
+                "
+              >
+                <Sparkles size={14} className="text-amber-400" />
+                {fullAiLoading
+                  ? "Gerando quiz completo..."
+                  : "Gerar quiz completo com IA"}
+              </Button>
+              {fullAiError && (
+                <p className="text-xs text-red-400 mt-1">{fullAiError}</p>
+              )}
 
               {creatingCatOpen && (
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
@@ -439,15 +431,15 @@ const [fullAiError, setFullAiError] = useState<string | null>(null);
                   type="button"
                   onClick={handleGenerateAI}
                   disabled={!categoryId || !quizTitle.trim() || aiLoading}
-                  className={`
-    h-9 px-3 text-xs font-semibold
-    flex items-center gap-1
-     border border-amber-400
-    text-amber-400 
-    hover:bg-amber-400/20 hover:text-amber-300
-    rounded-md transition-all
-    disabled:opacity-40 disabled:hover:bg-black disabled:hover:text-amber-400
-  `}
+                  className="
+                    h-9 px-3 text-xs font-semibold
+                    flex items-center gap-1
+                    border border-amber-400
+                    text-amber-400 
+                    hover:bg-amber-400/20 hover:text-amber-300
+                    rounded-md transition-all
+                    disabled:opacity-40 disabled:hover:bg-black disabled:hover:text-amber-400
+                  "
                 >
                   <Sparkles size={14} className="text-amber-400" />
                   {aiLoading ? "Gerando..." : "Completar título com IA"}
@@ -511,22 +503,37 @@ const [fullAiError, setFullAiError] = useState<string | null>(null);
               )}
             </div>
 
-       <Button
-  onClick={handleNext}
-  disabled={
-    !categoryId ||               // sem categoria
-    !quizTitle.trim() ||         // sem título
-    !imageUrl.trim() ||          // sem imagem
-    !isValidHttpUrl              // imagem inválida (URL errada)
-  }
-  className="w-full h-12 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-lg font-semibold disabled:opacity-40"
->
-  Continuar
-</Button>
-
+            <Button
+              onClick={handleNext}
+              disabled={
+                !categoryId ||
+                !quizTitle.trim() ||
+                !imageUrl.trim() ||
+                !isValidHttpUrl
+              }
+              className="w-full h-12 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-lg font-semibold disabled:opacity-40"
+            >
+              Continuar
+            </Button>
           </CardContent>
         </Card>
       </main>
     </>
+  );
+}
+
+export default function CreateQuiz() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center px-4">
+          <p className="text-neutral-200 text-lg">
+            Carregando criador de quiz...
+          </p>
+        </main>
+      }
+    >
+      <CreateQuizInner />
+    </Suspense>
   );
 }
