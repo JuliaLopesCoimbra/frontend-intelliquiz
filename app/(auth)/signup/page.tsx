@@ -155,7 +155,7 @@ async function submit() {
             <CardContent className="space-y-6">
               {step === "role" && (
                 <div className="space-y-1">
-                  <Label className="text-base text-white">Como você quer participar?</Label>
+                  {/* <Label className="text-base text-white">Como você quer participar?</Label> */}
                   <div className="grid gap-3 sm:grid-cols-2">
                     {[
                       {
