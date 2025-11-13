@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import Header from "@/components/Header";
 import { Gamepad2, ClipboardList } from "lucide-react";
+import { setUserToken, clearUserToken, setRefreshToken, clearRefreshToken } from "@/lib/http-retry"; // <-- mude o import
+
 import clsx from "clsx";
 
 import type { Role } from "@/lib/types";
@@ -38,7 +40,7 @@ export default function SignUp() {
     return left.replace(/[^a-zA-Z0-9_.-]/g, "").replace(/\.+/g, ".").slice(0, 24) || "user";
   }
 
- async function submit() {
+async function submit() {
   if (!canSubmit || loading) return;
   setErrMsg(null);
   setLoading(true);
@@ -51,36 +53,65 @@ export default function SignUp() {
   };
 
   try {
-    // 1) chama seu backend
+    // 0) Limpa sessão/tokens antigos (client + server)
+    try { clearUserToken(); } catch {}
+    try { clearRefreshToken(); } catch {}
+    try {
+      await fetch("/api/auth/clear", {
+        method: "POST",
+        // nada de headers extras aqui
+        credentials: "include",
+        cache: "no-store",
+      });
+    } catch {}
+
+    // 1) Cria conta (deixe só Content-Type)
     const res = await http<any>("/signup", {
       method: "POST",
+      headers: { "Content-Type": "application/json" }, // ❗ remova "Cache-Control" do request
       body: JSON.stringify(payload),
     });
 
-    // adapta ao shape real:
-    const token = res?.data?.token;
-    const refreshToken = res?.data?.refreshToken;
+    // suporta { data: { token, refreshToken, user } } ou direto
+    const lvl1 = res?.data ?? res;
+    const token: string | undefined = lvl1?.token;
+    const refreshToken: string | undefined = lvl1?.refreshToken;
+    if (!token) throw new Error("Token não retornado pelo servidor.");
 
-    if (!token) {
-      throw new Error("Token não retornado pelo servidor.");
+    // 2) Guarda tokens no CLIENT (o que seus hooks usam)
+    setUserToken(token);
+    if (refreshToken) setRefreshToken(refreshToken);
+
+    // 3) Tenta setar cookie httpOnly no SERVER (não quebre o fluxo se falhar)
+    try {
+      const setResp = await fetch("/api/auth/set", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }, // ❗ sem "Cache-Control"
+        body: JSON.stringify({ token, refreshToken }),
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!setResp.ok) {
+        const txt = await setResp.text().catch(() => "");
+        console.warn(`/api/auth/set falhou (${setResp.status}):`, txt);
+        // não lançar erro aqui — o client já está autenticado via localStorage
+      }
+    } catch (e) {
+      console.warn("/api/auth/set erro:", e);
     }
 
-    // 2) seta cookies httpOnly no servidor
-    await fetch("/api/auth/set", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, refreshToken }),
-    });
-
-    // 3) atualiza sua store (dados não sensíveis)
+    // 4) Atualiza store visual (dados não sensíveis)
     login({
-      id: res?.data?.user?.id ?? res?.data?.id ?? "me",
-      name: res?.data?.user?.name ?? res?.data?.name ?? `${nome} ${sobrenome}`,
+      id: lvl1?.user?.id ?? lvl1?.id ?? "me",
+      name: lvl1?.user?.name ?? lvl1?.name ?? `${nome} ${sobrenome}`,
       role: roleForStore,
     });
 
-    // 4) redireciona (middleware já vai validar o cookie)
-    router.push("/client/dashboard");
+    // 5) Navega e força revalidação
+    router.replace("/client/dashboard");
+    router.refresh();
+    // Se ainda ver sessão antiga por cache agressivo:
+    // window.location.assign("/client/dashboard");
   } catch (err: any) {
     const map: Record<string, string> = {
       email_already_in_use: "Este e-mail já está em uso.",
@@ -94,13 +125,12 @@ export default function SignUp() {
   }
 }
 
-
   return (
     <>
       <Header />
       <div className="relative min-h-[88vh]  ">
         <main className="mx-auto grid max-w-[150vh] place-items-center px-4 py-10">
-          <Card className="w-full border-neutral-800/80 bg-neutral-950/10 backdrop-blur-md shadow-2xl shadow-black/40">
+          <Card className="w-full border-neutral-800/80 bg-neutral-950/10 ">
             <div className="px-6 -mt-2 mb-1">
               <button
                 type="button"
@@ -125,7 +155,7 @@ export default function SignUp() {
             <CardContent className="space-y-6">
               {step === "role" && (
                 <div className="space-y-1">
-                  <Label className="text-base">Como você quer participar?</Label>
+                  <Label className="text-base text-white">Como você quer participar?</Label>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {[
                       {

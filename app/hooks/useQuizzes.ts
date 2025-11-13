@@ -1,116 +1,74 @@
+// app/hooks/useQuizzes.ts
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { http } from "@/lib/http";
 import { httpRetry } from "@/lib/http-retry";
 import { getUserToken } from "@/lib/auth.client";
-import type { ApiQuiz, EnrichedQuiz } from "./quiz";
+import type { MyQuizApi, EnrichedQuiz } from "./quiz";
 
-export function useQuizzes(search: string, opts?: { enabled?: boolean }) {
+type ListQuizzesResponse = {
+  maxPage: number;          // zero-based vindo da API
+  quizzes: MyQuizApi[];
+};
+
+type UseQuizzesOpts = {
+  enabled?: boolean;
+  page?: number;            // ← novo
+  limit?: number;           // ← novo
+};
+
+export function useQuizzes(search: string, opts?: UseQuizzesOpts) {
   const router = useRouter();
   const [loadingQuizzes, setLoadingQuizzes] = useState(true);
   const [apiQuizzes, setApiQuizzes] = useState<EnrichedQuiz[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
- const enabled = opts?.enabled ?? true;
-  // caches para enriquecer
-  const categoryNameCache = useMemo(() => new Map<string, string>(), []);
-  const userNameCache = useMemo(() => new Map<string, string>(), []);
+  const [maxPage, setMaxPage] = useState(0);
 
-  // throttle simples (sem libs): até 3 requests concorrentes
-const MAX_CONCURRENCY = 3;
-let active = 0;
-const queue: Array<() => void> = [];
-async function throttle<T>(fn: () => Promise<T>): Promise<T> {
-  if (active >= MAX_CONCURRENCY) {
-    await new Promise<void>((res) => queue.push(res));
-  }
-  active++;
-  try {
-    return await fn();
-  } finally {
-    active--;
-    const next = queue.shift();
-    if (next) next();
-  }
-}
-
-// dedupe em voo: evita pedir o mesmo recurso 2x ao mesmo tempo
-const inflight = new Map<string, Promise<any>>();
-
-async function dedup<T>(key: string, fn: () => Promise<T>): Promise<T> {
-  const p = inflight.get(key);
-  if (p) return p;
-  const newP = fn().finally(() => inflight.delete(key));
-  inflight.set(key, newP);
-  return newP;
-}
-
-async function getCategoryName(id: string, token: string): Promise<string> {
-  if (!id) return "—";
-  const cached = categoryNameCache.get(id);
-  if (cached) return cached;
-
-  const name = await dedup(`cat:${id}`, () =>
-    throttle(async () => {
-      const r = await httpRetry<{ data: { id: string; name: string } }>(
-        `/categories/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      return r?.data?.name ?? "—";
-    })
-  );
-
-  categoryNameCache.set(id, name);
-  return name;
-}
-
-async function getUserName(id: string, token: string): Promise<string> {
-  if (!id) return "—";
-  const cached = userNameCache.get(id);
-  if (cached) return cached;
-
-  const name = await dedup(`user:${id}`, () =>
-    throttle(async () => {
-      const r = await httpRetry<{ data: { id: string; username: string; name?: string } }>(
-        `/users/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      return r?.data?.username || "—";
-    })
-  );
-
-  userNameCache.set(id, name);
-  return name;
-}
+  const enabled = opts?.enabled ?? true;
+  const page = opts?.page ?? 0;
+  const limit = opts?.limit ?? 10;
 
   useEffect(() => {
-     if (!enabled) return;
+    if (!enabled) return;
+
     (async () => {
       try {
         setLoadingQuizzes(true);
         setFetchError(null);
+
         const token = getUserToken();
         if (!token) {
           router.replace("/login?next=/client/dashboard");
           return;
         }
-        await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 300)));
-       const res = await httpRetry<{ data: ApiQuiz[] }>("/quizzes", {
-  headers: { Authorization: `Bearer ${token}` },
-});
-        const base = res?.data ?? [];
 
-        const enriched = await Promise.all(
-          base.map(async (q) => {
-            const [categoryName, authorName] = await Promise.all([
-              getCategoryName(q.category_id, token),
-              getUserName(q.created_by, token),
-            ]);
-            return { ...q, categoryName, authorName };
-          })
-        );
+        // pequeno jitter
+        await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 300)));
+
+        const url = `/quizzes?page=${page}&limit=${limit}`; // ← paginação aqui
+        const res = await httpRetry(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const lvl1 = (res as any)?.data ?? res;
+        const lvl2 = (lvl1 as any)?.data ?? lvl1;
+
+        const payload = lvl2 as Partial<ListQuizzesResponse> | null | undefined;
+        const base: MyQuizApi[] = Array.isArray(payload?.quizzes) ? payload!.quizzes : [];
+
+        // normalizações úteis pro front
+        const enriched: EnrichedQuiz[] = base.map((q) => ({
+          ...q,
+          categoryName: q.category?.name ?? "—",
+          authorName: q.user?.username ?? q.user?.name ?? "—",
+          // garante existência dos contadores no tipo enriquecido
+          likes: (q as any).likes ?? 0,
+          games_played: (q as any).games_played ?? 0,
+        }));
+
         setApiQuizzes(enriched);
+        setMaxPage(Number(payload?.maxPage ?? 0));
       } catch (err: any) {
         const status = err?.status || err?.response?.status;
         if (status === 401 || status === 403) {
@@ -123,18 +81,31 @@ async function getUserName(id: string, token: string): Promise<string> {
         setLoadingQuizzes(false);
       }
     })();
-  }, [enabled,router]);
+  }, [enabled, page, limit, router]); // ← importante: refetch quando page/limit mudarem
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     if (!s) return apiQuizzes;
-    return apiQuizzes.filter(
-      (q) =>
-        q.name.toLowerCase().includes(s) ||
-        q.categoryName.toLowerCase().includes(s) ||
-        q.authorName.toLowerCase().includes(s)
-    );
+
+    return apiQuizzes.filter((q) => {
+      const name = q.name?.toLowerCase() ?? "";
+      const cat =
+        q.categoryName?.toLowerCase?.() ??
+        q.category?.name?.toLowerCase?.() ??
+        "";
+      const author =
+        q.authorName?.toLowerCase?.() ??
+        q.user?.username?.toLowerCase?.() ??
+        q.user?.name?.toLowerCase?.() ??
+        "";
+      return name.includes(s) || cat.includes(s) || author.includes(s);
+    });
   }, [apiQuizzes, search]);
 
-  return { loadingQuizzes, fetchError, quizzes: filtered };
+  return {
+    loadingQuizzes,
+    fetchError,
+    quizzes: Array.isArray(filtered) ? filtered : [],
+    maxPage,                       // ← expõe total (zero-based)
+  };
 }

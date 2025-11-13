@@ -1,13 +1,23 @@
-// src/lib/http.ts
+// lib/http.ts
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
 
 type FetchOptions = RequestInit & { parseJson?: boolean };
+
+export class HttpError extends Error {
+  status: number;
+  data?: any;
+  constructor(status: number, message: string, data?: any) {
+    super(message);
+    this.status = status;
+    this.data = data;
+    this.name = "HttpError";
+  }
+}
 
 export async function http<T = unknown>(
   path: string,
   { parseJson = true, headers, ...init }: FetchOptions = {}
 ): Promise<T> {
-  // importa dinamicamente para evitar SSR usar window
   const { getUserToken } = await import("./auth.client");
   const token = getUserToken();
 
@@ -29,7 +39,7 @@ export async function http<T = unknown>(
 
   if (!res.ok) {
     const msg = data?.error || data?.message || `HTTP ${res.status}`;
-    throw new Error(msg);
+    throw new HttpError(res.status, msg, data);
   }
   return (parseJson ? (data as T) : (undefined as unknown as T));
 }

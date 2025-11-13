@@ -12,7 +12,7 @@ export function TabsNav({
 }) {
   const tabs: { key: Tab; label: string }[] = [
     { key: "meus", label: "Meus Quizzes" },
-    { key: "favoritos", label: "Favoritos" },
+ 
     { key: "historico", label: "Histórico" },
   ];
 

@@ -1,5 +1,5 @@
 /** Tabs existentes */
-export type Tab = "meus" | "favoritos" | "historico";
+export type Tab = "meus" | "historico";
 
 /** Tipos vindos da API real */
 export type ApiQuiz = {
@@ -23,7 +23,7 @@ export type MyQuizApi = {
   updated_at: string;
 };
 
-export type EnrichedQuiz = ApiQuiz & {
+export type EnrichedQuiz = MyQuizApi & {
   categoryName: string;
   authorName: string;
 };

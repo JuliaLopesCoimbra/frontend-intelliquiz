@@ -125,9 +125,9 @@ export default function Login() {
   return (
     <>
       <Header />
-      <div className="relative min-h-[88vh] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900 via-black to-black">
-        <main className="mx-auto grid max-w-md place-items-center px-4 py-10 text-white">
-          <Card className="w-full border-neutral-800/80 bg-neutral-950/10 backdrop-blur-md shadow-2xl shadow-black/40">
+      <div className="relative min-h-[88vh]  ">
+        <main className="mx-auto grid max-w-md place-items-center  px-4 py-10 text-white">
+          <Card className="w-full border-neutral-800/80 bg-neutral-950/10 ">
             <CardHeader>
               <CardTitle className="text-3xl font-semibold tracking-tight text-amber-300">
                 Entrar

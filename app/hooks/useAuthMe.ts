@@ -1,58 +1,52 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { http } from "@/lib/http";
+import useSWR from "swr";
+import { httpRetry } from "@/lib/http-retry";
 import { getUserToken } from "@/lib/auth.client";
 import type { Me } from "./quiz";
 
 export function useAuthMe() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
-  const [me, setMe] = useState<Me | null>(null);
-  const [loadingMe, setLoadingMe] = useState(true);
 
+  // Lê o token uma única vez por montagem
+  const token = useMemo(() => getUserToken(), []);
+
+  // Redireciona se não houver token
   useEffect(() => {
-    let cancelled = false;
-    const t = getUserToken();
-    if (!t) {
+    if (!token) {
       router.replace("/login?next=/client/dashboard");
-    } else {
-      if (!cancelled) setChecking(false);
     }
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
+    setChecking(false);
+  }, [router, token]);
 
+  // SWR dedupa chamadas entre múltiplos componentes (header + página)
+  const { data, error, isLoading } = useSWR(
+    token ? ["/me", token] : null,
+    ([url, t]) => httpRetry<{ data?: Me }>(url, { headers: { Authorization: `Bearer ${t}` } }),
+    {
+      dedupingInterval: 3000,       // 3s sem repetir a mesma GET
+      revalidateOnFocus: false,     // não refaz ao focar janela
+      shouldRetryOnError: false,    // sem loop de retry aqui (httpRetry já trata 429)
+    }
+  );
+
+  // Unwrap compatível com { data: ... } ou payload plano
+  const me: Me | null = (data as any)?.data ?? (data as any) ?? null;
+
+  // Se o backend devolver 401/403, envia pro login
   useEffect(() => {
-    if (checking) return;
+    const status = (error as any)?.status || (error as any)?.response?.status;
+    if (status === 401 || status === 403) {
+      router.replace("/login?next=/client/dashboard");
+    }
+  }, [error, router]);
 
-    (async () => {
-      try {
-        setLoadingMe(true);
-        const token = getUserToken();
-        if (!token) {
-          router.replace("/login?next=/client/dashboard");
-          return;
-        }
-        const r = await http<{ data: Me }>("/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setMe(r?.data ?? null);
-      } catch (err: any) {
-        const status = err?.status || err?.response?.status;
-        if (status === 401 || status === 403) {
-          router.replace("/login?next=/client/dashboard");
-          return;
-        }
-        console.error("GET /me falhou:", err);
-        setMe(null);
-      } finally {
-        setLoadingMe(false);
-      }
-    })();
-  }, [checking, router]);
-
-  return { checking, me, loadingMe };
+  return {
+    checking,          // só controla o primeiro check do token
+    me,
+    loadingMe: isLoading,
+  };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,84 +29,104 @@ export default function CreateSuccess() {
 
   // redirecionar automático após 3.5s
   useEffect(() => {
-    const t = setTimeout(() => router.replace("/client/dashboard"), 30500);
+    const t = setTimeout(() => router.replace("/client/dashboard"), 3500);
     return () => clearTimeout(t);
   }, [router]);
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      {/* fundo sutil */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.16), transparent 60%), radial-gradient(900px 500px at 90% 30%, rgba(34,211,238,0.12), transparent 60%), radial-gradient(800px 500px at 50% 85%, rgba(168,85,247,0.12), transparent 60%)",
-        }}
-      />
+     <div
+  aria-hidden="true"
+  className="pointer-events-none fixed inset-0 -z-10"
+  style={{
+    background: `
+      repeating-conic-gradient(
+        from 0deg,
+        #fbbf24 0deg 10deg,
+        #f59e0b 10deg 20deg
+      )
+    `,
+  }}
+/>
+<div className="relative w-full max-w-xl">
 
-      <Card className="w-full max-w-xl bg-neutral-950/90 border-neutral-800 text-neutral-100 backdrop-blur">
-        <CardContent className="p-8">
-          <div className="flex flex-col items-center text-center gap-4">
+  {/* Glow Amber em volta do card */}
+  <div
+    aria-hidden="true"
+    className="absolute -inset-6 z-0 rounded-[28px] bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 opacity-60 blur-3xl"
+  />
 
-            {/* Ícone com animação */}
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 220, damping: 18 }}
-              className="grid place-items-center h-16 w-16 rounded-full bg-emerald-500/20 border border-emerald-400/40"
-            >
-              <svg width="34" height="34" viewBox="0 0 24 24" className="text-emerald-400">
-                <path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" />
-              </svg>
-            </motion.div>
+  <div className="relative z-10 rounded-[26px] p-[2px] bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400">
 
-            <motion.h1
-              initial={{ y: 6, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.05 }}
-              className="text-2xl font-semibold"
-            >
-              Quiz criado com sucesso!
-            </motion.h1>
+    <Card className="w-full max-w-xl bg-neutral-950/90 border-neutral-800 text-neutral-100 backdrop-blur rounded-2xl">
+      <CardContent className="p-10">   {/* padding maior */}
+        <div className="flex flex-col items-center text-center gap-6">
 
-            <p className="text-neutral-400">
-              <span className="text-neutral-200 font-medium">{title}</span> foi salvo.
-            </p>
+          {/* Ícone com animação */}
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 220, damping: 18 }}
+            className="grid place-items-center h-20 w-20 rounded-full bg-emerald-500/20 border border-emerald-400/40"
+          >
+            <svg width="40" height="40" viewBox="0 0 24 24" className="text-emerald-400">
+              <path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" />
+            </svg>
+          </motion.div>
 
-            {/* Ações */}
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-              {slug ? (
-                <Button
-                  onClick={() => router.push(`/quiz/${slug}`)}
-                  className="h-11 bg-amber-400 text-black hover:bg-amber-300"
-                >
-                  Ver quiz agora
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => router.push(`/client/dashboard`)}
-                  className="h-11 bg-amber-400 text-black hover:bg-amber-300"
-                >
-                  Ir para o dashboard
-                </Button>
-              )}
+          {/* Título maior */}
+          <motion.h1
+            initial={{ y: 6, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.05 }}
+            className="text-3xl md:text-4xl font-bold"
+          >
+            Quiz criado com sucesso!
+          </motion.h1>
 
+          {/* Subtítulo maior */}
+          <p className="text-neutral-300 text-lg">
+            <span className="text-neutral-200 font-semibold">{title}</span> foi salvo.
+          </p>
+
+          {/* Ações -> botões maiores e chamativos */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+
+            {slug ? (
               <Button
-                variant="outline"
-                onClick={() => router.push(`/client/create`)}
-                className="h-11 border-neutral-700 text-black hover:bg-neutral-100"
+                onClick={() => router.push(`/quiz/${slug}`)}
+                className="h-14 px-8 text-lg font-semibold bg-amber-400 text-black hover:bg-amber-300 rounded-xl shadow-[0_0_20px_#fbbf24]"
               >
-                Criar outro
+                Ver quiz agora 🚀
               </Button>
-            </div>
+            ) : (
+              <Button
+                onClick={() => router.push(`/client/dashboard`)}
+                className="h-14 px-8 text-lg font-semibold bg-amber-400 text-black hover:bg-amber-300 rounded-xl shadow-[0_0_20px_#fbbf24]"
+              >
+                Ir para o dashboard
+              </Button>
+            )}
 
-            <p className="text-xs text-neutral-500 mt-2">
-              Você será redirecionado para o dashboard automaticamente.
-            </p>
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/client/create`)}
+              className="h-14 px-8 text-lg font-semibold border-neutral-600 text-black hover:bg-neutral-300 rounded-xl"
+            >
+              Criar outro 
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+
+          <p className="text-sm text-neutral-500 mt-3">
+            Você será redirecionado automaticamente em instantes.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+
+  </div>
+</div>
+
     </main>
   );
 }

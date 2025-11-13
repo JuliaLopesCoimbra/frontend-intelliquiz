@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, displayUser } from "@/app/hooks/format";
-import type { MyQuizApi } from "@/app/hooks/quiz";
+import type { EnrichedQuiz } from "@/app/hooks/quiz";
 
 export function MyQuizzesCard({
   loading,
@@ -12,8 +12,10 @@ export function MyQuizzesCard({
 }: {
   loading: boolean;
   error: string | null;
-  quizzes: MyQuizApi[];
+  quizzes?: EnrichedQuiz[] | null;
 }) {
+  const list: EnrichedQuiz[] = Array.isArray(quizzes) ? quizzes : [];
+
   return (
     <Card
       className="
@@ -33,33 +35,45 @@ export function MyQuizzesCard({
 
         {loading ? (
           <p className="text-sm text-neutral-400">Carregando seus quizzes...</p>
-        ) : quizzes.length === 0 ? (
-          <p className="text-sm text-neutral-400">
-            Você ainda não criou nenhum quiz.
-          </p>
+        ) : list.length === 0 ? (
+          <p className="text-sm text-neutral-400">Você ainda não criou nenhum quiz.</p>
         ) : (
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {quizzes.map((q) => (
+            {list.map((q) => (
               <li
                 key={q.id}
                 className="
-                  group rounded-xl border border-neutral-800/70 bg-neutral-650 p-4
+                  group rounded-xl border border-neutral-800/70 bg-neutral-900 p-4
                   transition-all hover:border-amber-400 hover:shadow-[0_0_0_1px_rgba(167,139,250,0.35)]
                 "
               >
-                <div className="relative mb-3 h-28 w-full overflow-hidden rounded-lg">
-             <img
-  src="https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=800&q=80"
-  alt="Quiz cover"
-  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-/>
+               <div className="relative mb-3 h-28 w-full overflow-hidden rounded-lg">
+  {(() => {
+    const coverUrl =
+      // tenta camelCase primeiro
+      (q as any).imageUrl ||
+      // depois snake_case vindo direto da API
+      (q as any).image_url ||
+      // fallback
+      `https://picsum.photos/seed/${encodeURIComponent(q.id)}/600/300`;
 
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                </div>
+    return (
+      <>
+        <img
+          src={coverUrl}
+          alt={q.name || "Quiz cover"}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+      </>
+    );
+  })()}
+</div>
+
 
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="inline-flex items-center rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-[2px] text-[11px] font-semibold text-amber-400/40">
-                    {q.category?.name || "Sem categoria"}
+                  <span className="inline-flex items-center rounded-full border border-amber-400 bg-amber-400 px-2 py-[2px] text-[11px] font-semibold text-black">
+                    {q.category?.name || q.categoryName || "Sem categoria"}
                   </span>
                   {q.curator_pick && (
                     <span className="inline-flex items-center rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-[2px] text-[11px] font-semibold text-emerald-200">
@@ -73,7 +87,9 @@ export function MyQuizzesCard({
                 <div className="mt-1 space-y-1 text-xs text-neutral-400">
                   <p className="truncate">
                     Autor:{" "}
-                    <span className="text-neutral-200">{displayUser(q.user)}</span>
+                    <span className="text-neutral-200">
+                      {q.user ? displayUser(q.user) : q.authorName ?? "—"}
+                    </span>
                   </p>
                   <p className="truncate">
                     Likes: <span className="text-neutral-200">{q.likes}</span> · Partidas:{" "}
@@ -90,10 +106,9 @@ export function MyQuizzesCard({
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
-                 
                   <Link
                     href={`/client/edit?id=${q.id}`}
-                    className="text-xs text-amber-400/70 hover:text-neutral-200"
+                    className="text-xs text-amber-400 hover:text-neutral-200"
                   >
                     Editar / Detalhes
                   </Link>

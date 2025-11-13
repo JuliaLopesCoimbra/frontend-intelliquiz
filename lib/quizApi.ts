@@ -1,4 +1,7 @@
+// lib/quizApi.ts
 "use server";
+
+import { cookies } from "next/headers";
 
 export type QuizApi = {
   id: string;
@@ -14,27 +17,71 @@ export type QuizApi = {
   updated_at: string;
 };
 
+export type ListQuizzesResponse = {
+  maxPage: number;   // zero-based (ex.: 0 => 1 página, 4 => 5 páginas)
+  quizzes: QuizApi[];
+};
 
-export async function getQuizzes(): Promise<QuizApi[]> {
-  const base =
-    process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
-    console.log("Backend base URL:", base);
-  const url = `${base}/quizzes`;
-console.log("Fetching quizzes from:", url);
+export async function getQuizzes(
+  { page = 0, limit = 10 }: { page?: number; limit?: number } = {}
+): Promise<ListQuizzesResponse> {
+  const base = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
+  if (!base) {
+    console.warn("NEXT_PUBLIC_API_URL não definido; retornando lista vazia.");
+    return { maxPage: 0, quizzes: [] };
+  }
+
+  const url = `${base}/quizzes?page=${page}&limit=${limit}`;
+  console.log("Fetching quizzes from:", url);
+
   try {
+    const cookieStore = cookies();
+    const token =
+      cookieStore.get("access_token")?.value ||
+      cookieStore.get("token")?.value ||
+      "";
+
     const res = await fetch(url, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",          // 🔒 sempre buscar do backend
-      next: { revalidate: 0 },    // redundante, mas explícito no App Router
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      cache: "no-store",
+      next: { revalidate: 0 },
     });
 
-    if (!res.ok) throw new Error(`GET /quizzes falhou: ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`GET /quizzes falhou: ${res.status} ${body}`);
+    }
 
     const json = await res.json();
-    return Array.isArray(json?.data) ? json.data : [];
+    const lvl1 = json?.data ?? json;
+
+    // Formato paginado esperado: { maxPage, quizzes: [...] }
+    if (Array.isArray(lvl1?.quizzes)) {
+      return {
+        maxPage: Number(lvl1.maxPage ?? 0),
+        quizzes: lvl1.quizzes as QuizApi[],
+      };
+    }
+
+    // Sem paginação? Cai de pé.
+    if (Array.isArray(lvl1)) {
+      return { maxPage: 0, quizzes: lvl1 as QuizApi[] };
+    }
+    if (Array.isArray(json?.quizzes)) {
+      return {
+        maxPage: Number(json.maxPage ?? 0),
+        quizzes: json.quizzes as QuizApi[],
+      };
+    }
+
+    console.warn("Formato inesperado em /quizzes; retornando []. Payload:", json);
+    return { maxPage: 0, quizzes: [] };
   } catch (err) {
     console.error("Erro ao buscar quizzes:", err);
-    return [];
+    return { maxPage: 0, quizzes: [] };
   }
 }

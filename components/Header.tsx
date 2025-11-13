@@ -55,7 +55,7 @@ export default function Header() {
               </Link>
             </div>
           ) : (
-            <Button variant="outline" onClick={logout}>
+            <Button variant="outline" className="text-black" onClick={logout}>
               Sair
             </Button>
           )}
