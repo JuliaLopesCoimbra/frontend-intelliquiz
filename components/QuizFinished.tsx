@@ -49,7 +49,7 @@ export function QuizFinished({ score, maxScore = 100, quizTitle, quizId }: Props
     setVote(kind); // otimista
 
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/quizzes/${effectiveQuizId}/${kind}`;
+      const url = `${process.env.NEXT_PUBLIC_API_URL}quizzes/${effectiveQuizId}/${kind}`;
       const res = await fetch(url, {
         method: "POST",
         headers: {
